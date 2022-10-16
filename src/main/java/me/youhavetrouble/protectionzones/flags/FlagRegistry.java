@@ -17,7 +17,6 @@ public class FlagRegistry {
     }
 
     /**
-     *
      * @return Unmodifiable collection of all registered flags
      */
     public static Collection<ZoneFlag> getRegisteredFlags() {

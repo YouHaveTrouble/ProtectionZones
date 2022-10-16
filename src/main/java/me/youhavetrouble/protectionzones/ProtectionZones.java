@@ -5,79 +5,115 @@ import me.youhavetrouble.protectionzones.flags.Flag;
 import me.youhavetrouble.protectionzones.flags.FlagRegistry;
 import me.youhavetrouble.protectionzones.flags.FlagResult;
 import me.youhavetrouble.protectionzones.flags.ZoneFlag;
+import me.youhavetrouble.protectionzones.player.PlayerListener;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.util.Vector;
 
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.UUID;
 
 public final class ProtectionZones extends JavaPlugin {
 
-    private static final HashMap<String, ProtectionZone> protectionZones = new HashMap<>();
+    private static final HashMap<UUID, WorldProtectionZones> protectionZones = new HashMap<>();
 
     @Override
     public void onEnable() {
         FlagRegistry.registerFlag(Flag.BREAK_BLOCKS.getZoneFlag());
         FlagRegistry.registerFlag(Flag.PLACE_BLOCKS.getZoneFlag());
 
+        getServer().getPluginManager().registerEvents(new PlayerListener(), this);
+
     }
 
+    /**
+     * Register protection zone
+     * @param protectionZone Protection zone to register
+     */
     public static void registerZone(ProtectionZone protectionZone) {
-        if (protectionZones.containsKey(protectionZone.getId())) {
+        UUID worldUuid = protectionZone.getWorldUuid();
+        WorldProtectionZones worldProtectionZones = protectionZones.get(worldUuid);
+        if (worldProtectionZones == null) {
+            worldProtectionZones = new WorldProtectionZones(worldUuid);
+            protectionZones.put(worldUuid, worldProtectionZones);
+        }
+        if (worldProtectionZones.getProtectionZoneById(protectionZone.getId()) != null) {
             throw new ZoneAlreadyRegisteredException(String.format("Zone with id %s is already registered", protectionZone.getId()));
         }
-        protectionZones.put(protectionZone.getId(), protectionZone);
+        worldProtectionZones.registerZone(protectionZone);
     }
 
-    public static void unregisterZone(ProtectionZone protectionZone) {
-        unregisterZone(protectionZone.getId());
-    }
-
-    public static void unregisterZone(String id) {
-        protectionZones.remove(id);
+    /**
+     * Unregister protection zone
+     * @param worldUuid UUID of world the region is in
+     * @param id Region id to unregister
+     */
+    public static void unregisterZone(UUID worldUuid, String id) {
+        if (worldUuid == null) return;
+        if (id == null) return;
+        WorldProtectionZones worldProtectionZones = protectionZones.get(worldUuid);
+        if (worldProtectionZones == null) return;
+        worldProtectionZones.unregisterZone(id);
+        if (worldProtectionZones.getProtectionZones().isEmpty()) protectionZones.remove(worldUuid);
     }
 
     /**
      * Queries the location for all protection zones that contain it
      * @param location Location to query
-     * @return Set of all protection zones that contain given location
+     * @return Set of all protection zones that contain given location, null if world in location is null
      */
-    public static Set<ProtectionZone> queryProtectionZones(Location location) {
-        HashSet<ProtectionZone> zones = new HashSet<>();
-        if (location.getWorld() == null) return zones;
-        protectionZones.forEach((id, zone) -> {
-            if (!location.getWorld().getUID().equals(zone.getWorldUuid())) return;
-            if (zone.contains(location)) zones.add(zone);
-        });
-        return zones;
+    public Set<ProtectionZone> queryProtectionZones(Location location) {
+        if (location.getWorld() == null) return null;
+        return queryProtectionZones(location.getWorld().getUID(), location.toVector());
     }
 
-    public static FlagResult<?> queryEffectiveFlagResult(Location location, ZoneFlag zoneFlag) {
-        Set<ProtectionZone> zones = queryProtectionZones(location);
-        if (zones.isEmpty()) return FlagResult.empty();
-        FlagResult<?> result = FlagResult.empty();
-        int highestPriority = 0;
-        for (ProtectionZone zone : zones) {
-            if (zone.getPriority() < highestPriority) continue;
-            highestPriority = zone.getPriority();
-            result = zone.getPublicPermission(zoneFlag);
-        }
-        return result;
+    /**
+     * Queries the location for all protection zones that contain it
+     * @param worldUuid UUID of world to query
+     * @param positionVector Location vector to query
+     * @return Set of all protection zones that contain given location, null if worldUuid is null
+     */
+    public Set<ProtectionZone> queryProtectionZones(UUID worldUuid, Vector positionVector) {
+        if (worldUuid == null) return null;
+        Set<ProtectionZone> zones = new HashSet<>();
+        WorldProtectionZones worldProtectionZones = protectionZones.get(worldUuid);
+        if (worldProtectionZones == null) return zones;
+        return worldProtectionZones.queryProtectionZones(positionVector);
     }
 
-    public static FlagResult<?> queryEffectivePlayerFlagResult(Player player, Location location, ZoneFlag zoneFlag) {
-        Set<ProtectionZone> zones = queryProtectionZones(location);
-        if (zones.isEmpty()) return FlagResult.empty();
-        FlagResult<?> permission = FlagResult.empty();
-        int highestPriority = 0;
-        for (ProtectionZone zone : zones) {
-            if (zone.getPriority() < highestPriority) continue;
-            highestPriority = zone.getPriority();
-            permission = zone.resolvePermission(player, zoneFlag);
-        }
-        return permission;
+    /**
+     * Gets the result of flag query
+     * @param zoneFlag Flag to query
+     * @param player Player to query with
+     * @param worldUuid UUID of world to query in
+     * @param positionVector Vector position to query with
+     * @return Result of flag query. Null if world uuid is null
+     */
+    public static FlagResult<?> queryEffectivePlayerFlagResult(ZoneFlag zoneFlag, Player player, UUID worldUuid, Vector positionVector) {
+        if (worldUuid == null) return null;
+        WorldProtectionZones worldProtectionZones = protectionZones.get(worldUuid);
+        if (worldProtectionZones == null) return FlagResult.empty();
+        return worldProtectionZones.queryEffectivePlayerFlagResult(
+                zoneFlag,
+                player,
+                positionVector.getBlockX(),
+                positionVector.getBlockY(),
+                positionVector.getBlockZ()
+        );
     }
 
+    /**
+     * Gets the result of flag query
+     * @param zoneFlag Flag to query
+     * @param player Player to query with
+     * @param location location to query with
+     * @return Result of flag query. Null if world in location is null
+     */
+    public static FlagResult<?> queryEffectivePlayerFlagResult(ZoneFlag zoneFlag, Player player, Location location) {
+        if (location.getWorld() == null) return null;
+        return queryEffectivePlayerFlagResult(zoneFlag, player, location.getWorld().getUID(), location.toVector());
+    }
 }

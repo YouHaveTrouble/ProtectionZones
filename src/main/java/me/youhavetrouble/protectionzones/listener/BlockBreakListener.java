@@ -13,10 +13,11 @@ public class BlockBreakListener implements Listener {
     @EventHandler(priority = EventPriority.HIGH, ignoreCancelled = true)
     public void onBlockBreak(BlockBreakEvent event) {
         FlagResult<?> result = ProtectionZones.queryEffectivePlayerFlagResult(
+                Flag.BREAK_BLOCKS.getZoneFlag(),
                 event.getPlayer(),
-                event.getBlock().getLocation(),
-                Flag.BREAK_BLOCKS.getZoneFlag()
+                event.getBlock().getLocation()
         );
+        if (result == null) return;
         if (FlagResult.isEmpty(result)) return;
         boolean value = (boolean) result.getResult();
         event.setCancelled(!value);
