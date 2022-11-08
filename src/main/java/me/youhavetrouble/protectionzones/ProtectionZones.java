@@ -1,31 +1,44 @@
 package me.youhavetrouble.protectionzones;
 
+import me.youhavetrouble.protectionzones.command.PZCommand;
 import me.youhavetrouble.protectionzones.exception.ZoneAlreadyRegisteredException;
 import me.youhavetrouble.protectionzones.flags.Flag;
 import me.youhavetrouble.protectionzones.flags.FlagRegistry;
 import me.youhavetrouble.protectionzones.flags.FlagResult;
 import me.youhavetrouble.protectionzones.flags.ZoneFlag;
+import me.youhavetrouble.protectionzones.listener.BlockBreakListener;
+import me.youhavetrouble.protectionzones.listener.BlockInteractListener;
+import me.youhavetrouble.protectionzones.listener.BlockPlaceListener;
 import me.youhavetrouble.protectionzones.player.PlayerListener;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.util.Vector;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
+import java.util.*;
 
 public final class ProtectionZones extends JavaPlugin {
 
+    private static ProtectionZones instance;
     private static final HashMap<UUID, WorldProtectionZones> protectionZones = new HashMap<>();
+    public static boolean debug = true;
 
     @Override
     public void onEnable() {
+
+        instance = this;
+
         FlagRegistry.registerFlag(Flag.BREAK_BLOCKS.getZoneFlag());
         FlagRegistry.registerFlag(Flag.PLACE_BLOCKS.getZoneFlag());
+        FlagRegistry.registerFlag(Flag.INTERACT_BLOCKS.getZoneFlag());
 
         getServer().getPluginManager().registerEvents(new PlayerListener(), this);
+
+        getServer().getPluginManager().registerEvents(new BlockBreakListener(), this);
+        getServer().getPluginManager().registerEvents(new BlockPlaceListener(), this);
+        getServer().getPluginManager().registerEvents(new BlockInteractListener(), this);
+
+        getCommand("protectionzones").setExecutor(new PZCommand());
 
     }
 
@@ -115,5 +128,18 @@ public final class ProtectionZones extends JavaPlugin {
     public static FlagResult<?> queryEffectivePlayerFlagResult(ZoneFlag zoneFlag, Player player, Location location) {
         if (location.getWorld() == null) return null;
         return queryEffectivePlayerFlagResult(zoneFlag, player, location.getWorld().getUID(), location.toVector());
+    }
+
+    public static Collection<ProtectionZone> zonesForWorld(UUID worldUid) {
+        return protectionZones.get(worldUid).getProtectionZones();
+    }
+
+    public static ProtectionZone getZoneById(UUID worldUid, String zoneId) {
+        return protectionZones.get(worldUid).getProtectionZoneById(zoneId);
+    }
+
+    public static void debugMessage(String message) {
+        if (!debug) return;
+        instance.getLogger().info(message);
     }
 }

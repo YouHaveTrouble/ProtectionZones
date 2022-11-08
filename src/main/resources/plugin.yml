@@ -4,3 +4,8 @@ main: me.youhavetrouble.protectionzones.ProtectionZones
 api-version: 1.19
 authors: [ YouHaveTrouble ]
 website: https://youhavetrouble.me
+commands:
+  protectionzones:
+    description: ProtectionZones command
+    aliases:
+      - pz

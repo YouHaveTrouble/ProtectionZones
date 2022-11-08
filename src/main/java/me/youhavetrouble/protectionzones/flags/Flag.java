@@ -4,6 +4,7 @@ public enum Flag {
 
     BREAK_BLOCKS(new BlockBreakFlag("break_blocks")),
     PLACE_BLOCKS(new BlockPlaceFlag("place_blocks")),
+    INTERACT_BLOCKS(new BlockInteractFlag("interact_blocks")),
     ;
 
     private final ZoneFlag zoneFlag;

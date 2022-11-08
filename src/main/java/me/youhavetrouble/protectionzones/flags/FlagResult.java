@@ -1,5 +1,7 @@
 package me.youhavetrouble.protectionzones.flags;
 
+import org.jetbrains.annotations.NotNull;
+
 public class FlagResult<T> {
     private static final FlagResult<Object> emptyResult = new FlagResult<>(null);
     private final T result;
@@ -12,7 +14,7 @@ public class FlagResult<T> {
         return result;
     }
 
-    public static boolean isEmpty(FlagResult<?> flagResult) {
+    public static boolean isEmpty(@NotNull FlagResult<?> flagResult) {
         return flagResult.getResult() == null;
     }
 

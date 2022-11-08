@@ -6,16 +6,17 @@ import me.youhavetrouble.protectionzones.flags.FlagResult;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
-import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 
-public class BlockBreakListener implements Listener {
+public class BlockInteractListener implements Listener {
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
-    public void onBlockBreak(BlockBreakEvent event) {
+    public void onBlockBreak(PlayerInteractEvent event) {
+        if (!event.hasBlock()) return;
         FlagResult<?> result = ProtectionZones.queryEffectivePlayerFlagResult(
-                Flag.BREAK_BLOCKS.getZoneFlag(),
+                Flag.INTERACT_BLOCKS.getZoneFlag(),
                 event.getPlayer(),
-                event.getBlock().getLocation()
+                event.getClickedBlock().getLocation()
         );
         if (result == null) return;
         if (FlagResult.isEmpty(result)) return;

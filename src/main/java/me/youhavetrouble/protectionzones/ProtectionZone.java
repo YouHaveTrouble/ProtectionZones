@@ -116,6 +116,7 @@ public class ProtectionZone extends BoundingBox {
 
     /**
      * Get permission for non-members
+     * TODO pass default permissions into the zone somehow or have a global default
      */
     public FlagResult<?> getPublicPermission(ZoneFlag zoneFlag) {
         return publicPermissions.getOrDefault(zoneFlag.getName(), FlagResult.empty());

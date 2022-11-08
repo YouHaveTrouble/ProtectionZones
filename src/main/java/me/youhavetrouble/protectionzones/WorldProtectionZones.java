@@ -97,6 +97,8 @@ public class WorldProtectionZones {
      */
     public FlagResult<?> queryEffectivePlayerFlagResult(ZoneFlag zoneFlag, Player player, int x, int y, int z) {
         Set<ProtectionZone> zones = queryProtectionZones(x, y, z);
+        System.out.println("Zones query result");
+        zones.forEach(zone -> System.out.println(zone.getId()));
         if (zones.isEmpty()) return FlagResult.empty();
         FlagResult<?> permission = FlagResult.empty();
         int highestPriority = 0;
